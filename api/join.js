@@ -1,150 +1,226 @@
-module.exports = async function handler(req, res) {
-  res.setHeader('Cache-Control', 'no-store');
 
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
-    return res.status(405).json({ error: 'Method not allowed.' });
+"use strict";
+
+/*
+ GLF RESERVE — TEST SIGNUP
+ Only for the separate Vercel TEST project.
+ Original GLF website is not affected.
+*/
+
+const { createWelcomeToken } = require(
+  "./welcome-kit/_email"
+);
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Send data securely to Google Apps Script
+async function callAppsScript(url, payload) {
+  const controller = new AbortController();
+
+  const timeout = setTimeout(() => {
+    controller.abort();
+  }, 20000);
+
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8"
+      },
+      body: JSON.stringify(payload),
+      redirect: "follow",
+      signal: controller.signal
+    });
+
+    const raw = await response.text();
+
+    let data;
+
+    try {
+      data = JSON.parse(raw);
+    } catch (error) {
+      throw new Error(
+        "Apps Script returned a non-JSON response"
+      );
+    }
+
+    if (!response.ok || !data.success) {
+      throw new Error(
+        String(
+          data.error ||
+          "Google Apps Script request failed"
+        )
+      );
+    }
+
+    return data;
+
+  } finally {
+    clearTimeout(timeout);
   }
+}
 
-  const webhookUrl = process.env.GOOGLE_SHEETS_WEBHOOK_URL;
-  const webhookSecret = process.env.GOOGLE_SHEETS_WEBHOOK_SECRET;
+// Main TEST signup API
+module.exports = async function handler(req, res) {
 
-  if (!webhookUrl || !webhookSecret) {
-    console.error(
-      'Missing GOOGLE_SHEETS_WEBHOOK_URL or GOOGLE_SHEETS_WEBHOOK_SECRET'
-    );
+  res.setHeader("Cache-Control", "no-store");
 
-    return res.status(500).json({
-      error: 'Signup service is not configured yet.'
+  if (req.method !== "POST") {
+    return res.status(405).json({
+      error: "Method not allowed"
     });
   }
 
-  const body =
-    req.body && typeof req.body === 'object'
-      ? req.body
-      : {};
+  // TEST mode must be enabled
+  if (process.env.GLF_TEST_MODE !== "true") {
+    return res.status(503).json({
+      error: "Test mode disabled"
+    });
+  }
 
-  const email = String(body.email || '')
+  // Required Vercel environment variables
+  const required = [
+    "GLF_TEST_SIGNUP_SCRIPT_URL",
+    "GLF_TEST_SIGNUP_SECRET",
+    "GLF_TEST_EMAIL_SCRIPT_URL",
+    "GLF_TEST_EMAIL_SECRET",
+    "GLF_TEST_SITE_URL",
+    "GLF_TEST_ALLOWED_EMAILS",
+    "GLF_TOKEN_SECRET"
+  ];
+
+  const missing = required.filter(
+    key => !process.env[key]
+  );
+
+  if (missing.length > 0) {
+    console.error(
+      "[GLF TEST] Missing variables:",
+      missing.join(", ")
+    );
+
+    return res.status(503).json({
+      error: "Test server settings are incomplete"
+    });
+  }
+
+  const site = process.env.GLF_TEST_SITE_URL
+    .replace(/\/+$/, "");
+
+  if (!/^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(site)) {
+    return res.status(503).json({
+      error: "Invalid TEST website URL"
+    });
+  }
+
+  if (!req.body || typeof req.body !== "object") {
+    return res.status(400).json({
+      error: "Invalid request"
+    });
+  }
+
+  // Honeypot spam protection
+  if (req.body.company) {
+    return res.status(200).json({
+      ok: true
+    });
+  }
+
+  const email = String(req.body.email || "")
     .trim()
     .toLowerCase();
 
-  const honeypot = String(body.company || '').trim();
-
-  // Spam bot honeypot
-  if (honeypot) {
-    return res.status(200).json({
-      ok: true,
-      alreadyJoined: false
-    });
-  }
-
-  const emailPattern =
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-  if (
-    !emailPattern.test(email) ||
-    email.length > 254
-  ) {
+  if (email.length > 254 || !EMAIL_RE.test(email)) {
     return res.status(400).json({
-      error: 'Please enter a valid email address.'
+      error: "Please enter a valid email address"
     });
   }
 
-  // Country from Vercel
-  const headerCountry = String(
-    req.headers['x-vercel-ip-country'] || ''
+  // Allow approved TEST recipients only
+  const allowedEmails = process.env
+    .GLF_TEST_ALLOWED_EMAILS
+    .split(",")
+    .map(value => value.trim().toLowerCase());
+
+  if (!allowedEmails.includes(email)) {
+    return res.status(403).json({
+      error: "TEST ONLY: Email not approved"
+    });
+  }
+
+  // Country detection
+  let country = "Unknown";
+
+  const countryCode = String(
+    req.headers["x-vercel-ip-country"] ||
+    req.body.countryCode ||
+    ""
   ).toUpperCase();
 
-  // Browser fallback
-  const browserCountry = String(
-    body.countryCode || ''
-  ).toUpperCase();
-
-  const countryCode =
-    /^[A-Z]{2}$/.test(headerCountry)
-      ? headerCountry
-      : /^[A-Z]{2}$/.test(browserCountry)
-        ? browserCountry
-        : '';
-
-  let country = 'Unknown';
-
-  if (countryCode) {
+  if (/^[A-Z]{2}$/.test(countryCode)) {
     try {
-      country =
-        new Intl.DisplayNames(
-          ['en'],
-          { type: 'region' }
-        ).of(countryCode) || countryCode;
+      country = new Intl.DisplayNames(
+        ["en"],
+        { type: "region" }
+      ).of(countryCode) || countryCode;
     } catch (error) {
       country = countryCode;
     }
   }
 
-  const payload = {
-    secret: webhookSecret,
-    email,
-    country,
-    countryCode,
-    locale: String(body.locale || '').slice(0, 40),
-    timezone: String(body.timezone || '').slice(0, 80),
-    submittedAt: new Date().toISOString()
-  };
-
   try {
-    const response = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload),
-      redirect: 'follow'
-    });
 
-    const text = await response.text();
+    // STEP 1: Save email in Signup TEST Sheet
+    const saved = await callAppsScript(
+      process.env.GLF_TEST_SIGNUP_SCRIPT_URL,
+      {
+        secret: process.env.GLF_TEST_SIGNUP_SECRET,
+        email: email,
+        country: country
+      }
+    );
 
-    let data = {};
-
-    try {
-      data = JSON.parse(text);
-    } catch (error) {}
-
-    if (!response.ok || data.ok === false) {
-      console.error(
-        'Google Sheets webhook error:',
-        response.status,
-        text.slice(0, 500)
-      );
-
-      return res.status(502).json({
-        error:
-          'Unable to join right now. Please try again.'
+    if (saved.alreadyJoined) {
+      return res.status(200).json({
+        ok: true,
+        alreadyJoined: true
       });
     }
 
-    // Keep existing Sheet 1 workflow intact.
-    // Send welcome email only for a brand-new signup, if Resend is configured.
-    if (!data.alreadyJoined) {
-      try {
-        const { sendWelcomeEmail } = require('./welcome-kit/_email');
-        await sendWelcomeEmail(email);
-      } catch (mailError) {
-        // Do not mark successful signup as failed if email delivery fails.
-        console.error('Welcome email failed:', mailError.message);
+    // STEP 2: Generate secure welcome link
+    const token = createWelcomeToken(email);
+
+    const welcomeLink =
+      site +
+      "/welcome-kit/?token=" +
+      encodeURIComponent(token);
+
+    // STEP 3: Send Welcome Email from Chandan Gmail
+    await callAppsScript(
+      process.env.GLF_TEST_EMAIL_SCRIPT_URL,
+      {
+        secret: process.env.GLF_TEST_EMAIL_SECRET,
+        to: email,
+        link: welcomeLink
       }
-    }
+    );
 
     return res.status(200).json({
       ok: true,
-      alreadyJoined: Boolean(data.alreadyJoined)
+      alreadyJoined: false,
+      message: "Welcome email sent"
     });
 
   } catch (error) {
-    console.error('Join API failed:', error);
 
-    return res.status(500).json({
+    console.error(
+      "[GLF TEST JOIN ERROR]",
+      error.message
+    );
+
+    return res.status(502).json({
       error:
-        'Unable to join right now. Please try again.'
+        "TEST signup could not finish. Check Vercel Function Logs."
     });
   }
 };
