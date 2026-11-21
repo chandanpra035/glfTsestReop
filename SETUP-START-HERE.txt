@@ -1,0 +1,48 @@
+GLF RESERVE — YOUR IMAGE EMAIL + WELCOME KIT FORM
+
+WHAT CHANGED
+- Original website page and Sheet 1 signup flow remain unchanged.
+- /welcome-kit/ is the Manrope form with four colored, selectable fragrances.
+- Signup /api/join.js writes to existing Sheet 1 and then (for new members only) calls welcome email sender.
+- New welcome email reproduces your uploaded original image. We split off its bottom CTA as a clickable image, linking to a PERSONAL /welcome-kit/?token=... URL. The extra text link is a fallback if images are blocked.
+- /api/welcome-kit/verify locks email from the signed invitation token. /submit sends shipping details to separate Sheet 2.
+
+UPLOAD
+1) Upload entire contents of this ZIP into your existing GitHub repository root, preserving folder structure; Vercel auto-deploys.
+2) Confirm these images are publicly reachable AFTER deploy:
+   https://glfreserve.com/images/welcome-email-art.jpg
+   https://glfreserve.com/images/welcome-email-button.jpg
+3) Confirm form page: https://glfreserve.com/welcome-kit/
+   NOTE: submit button cannot work without a PERSONAL signed welcome email link and configured backend.
+
+VERCEL: PROJECT > SETTINGS > ENVIRONMENT VARIABLES (PRODUCTION)
+EXISTING signup (leave as is):
+GOOGLE_SHEETS_WEBHOOK_URL = Sheet 1 current Apps Script /exec URL
+GOOGLE_SHEETS_WEBHOOK_SECRET = Sheet 1 existing WEBHOOK_SECRET
+
+NEW Welcome Kit storage:
+GLF_SHEET_WEBAPP_URL = Sheet 2 new Apps Script /exec URL
+GLF_API_SECRET = same value as GLF_API_SECRET in Sheet 2 Script Properties
+GLF_TOKEN_SECRET = fresh random secret of 32+ characters (different from both other secrets)
+
+NEW sender (Resend):
+RESEND_API_KEY = API key from Resend after verifying glfreserve.com domain by adding their DNS records.
+Sender address: GLF RESERVE <member@glfreserve.com>.
+DNS authentication (SPF/DKIM) is important. Domain verification is required; merely having a mailbox is not enough.
+Save variables and REDEPLOY to activate them.
+
+TEST
+1) Join using a NEW email, not already present in Sheet 1.
+2) Check Sheet 1 has date, time IST, email, country.
+3) Check welcome email is from member@glfreserve.com. NOTE: Gmail may show display name or sender differently if provider is not properly configured.
+4) Click bottom CHOOSE YOUR FRAGRANCE in the email art -> /welcome-kit/?token=... . The email is auto-filled, locked.
+5) Enter name, select fragrance, fill shipping address, Submit.
+6) Verify new record in Sheet 2.
+
+IMPORTANT
+- The supplied original Sheet 1 Apps Script has no outgoing email code, and original /api/join.js did not send an email. If the current Akash address is emailing via ANOTHER integration, you MUST turn off that welcome notification there to avoid duplicates. DO NOT turn off Sheet 1 recording.
+- Current code's signup API treats email sending as best-effort: Sheet 1 save can succeed even if email fails. Check Vercel logs for 'Welcome email failed'.
+- Email design uses remote images (Gmail may require image loading). Accessible link text below artwork is included for people blocking images.
+- If your Resend account restricts recipients before domain verification, verify domain first.
+- For live shipping, add anti-abuse controls, duplicate claim prevention and privacy policy, and verify eligibility before sending gifts.
+- Never commit API keys or secrets to GitHub or expose them in HTML.

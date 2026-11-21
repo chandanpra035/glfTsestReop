@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="description" content="GLF Reserve by Ginger Lily Farms — Coming Soon." />
+  <title>GLF Reserve — Coming Soon</title>
+
+  <link rel="icon" href="images/glf_Logo.webp" sizes="any">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Manrope:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      height: 100%;
+      background: #000;
+      color: #fff;
+    }
+
+    body {
+      min-height: 100vh;
+      overflow-x: hidden;
+      font-family: "Manrope", Arial, sans-serif;
+    }
+
+    img {
+      display: block;
+    }
+
+    .page {
+      position: relative;
+      background: #000;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .section-frame {
+      position: fixed;
+      inset: 14px;
+      border: 1px solid rgba(255,255,255,.07);
+      pointer-events: none;
+      z-index: 30;
+      mix-blend-mode: screen;
+    }
+
+    .story {
+      position: relative;
+      min-height: 100vh;
+      background: #000;
+    }
+
+    .story-stage {
+      position: relative;
+      min-height: 100vh;
+      overflow: hidden;
+      isolation: isolate;
+      display: grid;
+      place-items: center;
+      background: #000;
+    }
+
+    .final-background-image {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+      object-position: center;
+      z-index: 1;
+      opacity: 1;
+      pointer-events: none;
+    }
+
+    .story-center {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+    }
+
+    .coming-copy {
+      position: relative;
+      width: min(920px, calc(100% - 40px));
+      min-height: 100vh;
+      margin: 0 auto;
+      display: grid;
+      align-content: center;
+      justify-items: center;
+      gap: 12px;
+      text-align: center;
+      padding: 40px 0;
+      opacity: 1;
+      pointer-events: auto;
+      z-index: 4;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .coming-copy h1 {
+      margin: 0;
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-size: clamp(52px, 9vw, 128px);
+      line-height: .9;
+      font-weight: 600;
+      letter-spacing: .10em;
+      text-transform: uppercase;
+      text-align: center;
+    }
+
+    .coming-copy .tagline {
+      margin: 2px 0 0;
+      font-size: clamp(13px, 1.35vw, 18px);
+      line-height: 1.2;
+      font-weight: 400;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: #f2f2f2;
+      text-align: center;
+    }
+
+    .coming-copy .season {
+      margin: 8px 0 0;
+      font-size: 10px;
+      line-height: 1;
+      font-weight: 500;
+      letter-spacing: .34em;
+      text-transform: uppercase;
+      color: #d8d8d8;
+    }
+
+    .reserve-trigger {
+      margin-top: 18px;
+      padding: 8px 0 7px;
+      touch-action: manipulation;
+      pointer-events: auto;
+      border: 0;
+      border-bottom: 1px solid rgba(255,255,255,.28);
+      background: transparent;
+      color: #e6e6e6;
+      font: 500 10px/1 "Manrope", Arial, sans-serif;
+      letter-spacing: .30em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: color .3s ease, border-color .3s ease;
+    }
+
+    .reserve-trigger:hover,
+    .reserve-trigger:focus-visible {
+      color: #fff;
+      border-color: rgba(255,255,255,.75);
+      outline: none;
+    }
+
+    .reserve-signup {
+      width: min(430px, 90vw);
+      max-height: 0;
+      margin-top: 0;
+      overflow: hidden;
+      opacity: 0;
+      transform: translateY(8px);
+      transition:
+        max-height .55s ease,
+        opacity .45s ease,
+        transform .45s ease,
+        margin-top .45s ease;
+    }
+
+    .reserve-signup.is-open {
+      max-height: 280px;
+      margin-top: 12px;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .reserve-signup p {
+      margin: 0 0 14px;
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-size: clamp(15px, 1.45vw, 19px);
+      font-weight: 500;
+      line-height: 1.3;
+      letter-spacing: .025em;
+      color: #f0f0f0;
+      text-align: center;
+    }
+
+    .reserve-email {
+      width: 100%;
+      padding: 12px 4px;
+      border: 0;
+      border-bottom: 1px solid rgba(255,255,255,.32);
+      border-radius: 0;
+      outline: none;
+      background: transparent;
+      color: #fff;
+      font: 400 16px/1.4 "Manrope", Arial, sans-serif;
+      letter-spacing: .04em;
+      text-align: center;
+      pointer-events: auto;
+      touch-action: manipulation;
+      -webkit-user-select: text;
+      user-select: text;
+    }
+
+    .reserve-email::placeholder {
+      color: #a8a8a8;
+      opacity: 1;
+    }
+
+    .reserve-email:focus {
+      border-bottom-color: rgba(255,255,255,.8);
+    }
+
+    .reserve-form {
+      width: 100%;
+      display: grid;
+      gap: 12px;
+    }
+
+    .reserve-submit {
+      justify-self: center;
+      padding: 11px 4px 8px;
+      touch-action: manipulation;
+      pointer-events: auto;
+      border: 0;
+      border-bottom: 1px solid rgba(255,255,255,.28);
+      background: transparent;
+      color: #e6e6e6;
+      font: 500 10px/1 "Manrope", Arial, sans-serif;
+      letter-spacing: .30em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition:
+        color .3s ease,
+        border-color .3s ease,
+        opacity .3s ease;
+    }
+
+    .reserve-submit:hover,
+    .reserve-submit:focus-visible {
+      color: #fff;
+      border-color: rgba(255,255,255,.75);
+      outline: none;
+    }
+
+    .reserve-submit:disabled {
+      opacity: .45;
+      cursor: default;
+    }
+
+    .reserve-status {
+      min-height: 22px;
+      margin: 4px 0 0 !important;
+      font-family: "Manrope", Arial, sans-serif !important;
+      font-size: 11px !important;
+      line-height: 1.5 !important;
+      letter-spacing: .08em !important;
+      color: #f2f2f2 !important;
+      text-align: center !important;
+      overflow: visible !important;
+    }
+
+    .reserve-final-status {
+      display: none;
+      margin: 14px 0 0;
+      font-family: "Manrope", Arial, sans-serif;
+      font-size: 12px;
+      line-height: 1.5;
+      letter-spacing: .04em;
+      color: #f2f2f2;
+      text-align: center;
+    }
+
+    .reserve-final-status.is-visible {
+      display: block;
+    }
+
+    .reserve-hp {
+      position: absolute !important;
+      left: -9999px !important;
+      width: 1px !important;
+      height: 1px !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+
+    @media (min-width: 901px) {
+      .reserve-signup.is-open {
+        max-height: 340px;
+      }
+
+      .coming-copy {
+        width: min(1000px, calc(100% - 80px));
+      }
+
+      .coming-copy h1,
+      .coming-copy .tagline,
+      .coming-copy .season {
+        width: 100%;
+        text-align: center;
+      }
+
+      .coming-copy h1 {
+        white-space: nowrap;
+      }
+
+      .coming-copy .tagline {
+        font-size: clamp(13px, 1.35vw, 25px);
+      }
+
+      .coming-copy .season {
+        font-size: 19px;
+      }
+
+      .reserve-trigger {
+        font-size: 19px;
+      }
+
+      .reserve-signup {
+        width: min(760px, 90vw);
+      }
+
+      .reserve-signup p {
+        font-size: clamp(15px, 1.45vw, 26px);
+        white-space: nowrap;
+      }
+
+      .reserve-email {
+        font-size: 19px;
+      }
+
+      .reserve-submit {
+        font-size: 15px;
+      }
+
+      .reserve-status {
+        font-size: 12px !important;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .section-frame {
+        inset: 8px;
+      }
+
+      .coming-copy {
+        width: calc(100% - 30px);
+        gap: 10px;
+      }
+
+      .coming-copy h1 {
+        font-size: clamp(44px, 14vw, 72px);
+        letter-spacing: .08em;
+      }
+
+      .coming-copy .tagline {
+        font-size: 11px;
+        letter-spacing: .18em;
+      }
+
+      .reserve-trigger {
+        margin-top: 14px;
+        min-height: 44px;
+      }
+
+      .reserve-email {
+        min-height: 48px;
+        font-size: 16px;
+      }
+
+      .reserve-submit {
+        min-height: 44px;
+      }
+
+      .reserve-signup,
+      .reserve-form,
+      .reserve-email,
+      .reserve-submit {
+        pointer-events: auto;
+      }
+    }
+
+    @supports (height: 100svh) {
+      body,
+      .page,
+      .story,
+      .story-stage,
+      .story-center,
+      .coming-copy {
+        min-height: 100svh;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        transition: none !important;
+        animation: none !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page">
+    <div class="section-frame" aria-hidden="true"></div>
+
+    <section
+      class="story"
+      id="storySection"
+      aria-label="GLF Reserve Coming Soon"
+    >
+      <div class="story-stage" id="storyStage">
+
+        <!-- FINAL SCREEN BACKGROUND -->
+        <img
+          class="final-background-image"
+          id="finalBackgroundImage"
+          src="images/imge1glf.webp"
+          alt=""
+          aria-hidden="true"
+        >
+
+        <div class="story-center">
+          <div class="coming-copy" id="comingCopy">
+            <h1>Coming Soon</h1>
+
+            <p class="tagline">Thoughtful by Design.</p>
+
+            <p class="season">Winter 2027</p>
+
+            <button
+              class="reserve-trigger"
+              id="reserveTrigger"
+              type="button"
+              aria-expanded="false"
+              aria-controls="reserveSignup"
+            >
+              Join the Reserve
+            </button>
+
+            <div
+              class="reserve-signup"
+              id="reserveSignup"
+              aria-hidden="true"
+            >
+              <p>Be among the first to experience GLF RESERVE.</p>
+
+              <form class="reserve-form" id="reserveForm" novalidate>
+                <input
+                  class="reserve-email"
+                  id="reserveEmail"
+                  type="email"
+                  name="email"
+                  autocomplete="email"
+                  inputmode="email"
+                  placeholder="Email address"
+                  aria-label="Email address"
+                  required
+                >
+
+                <input
+                  class="reserve-hp"
+                  id="reserveCompany"
+                  type="text"
+                  name="company"
+                  tabindex="-1"
+                  autocomplete="off"
+                  aria-hidden="true"
+                >
+
+                <button
+                  class="reserve-submit"
+                  id="reserveSubmit"
+                  type="submit"
+                >
+                  Join the Reserve
+                </button>
+
+                <p
+                  class="reserve-status"
+                  id="reserveStatus"
+                  role="status"
+                  aria-live="polite"
+                ></p>
+              </form>
+            </div>
+
+            <p
+              class="reserve-final-status"
+              id="reserveFinalStatus"
+              role="status"
+              aria-live="polite"
+            ></p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const reserveTrigger = document.getElementById('reserveTrigger');
+    const reserveSignup = document.getElementById('reserveSignup');
+    const reserveEmail = document.getElementById('reserveEmail');
+    const reserveForm = document.getElementById('reserveForm');
+    const reserveSubmit = document.getElementById('reserveSubmit');
+    const reserveStatus = document.getElementById('reserveStatus');
+    const reserveFinalStatus = document.getElementById('reserveFinalStatus');
+    const reserveCompany = document.getElementById('reserveCompany');
+
+    reserveTrigger.addEventListener('click', () => {
+      const open = !reserveSignup.classList.contains('is-open');
+
+      reserveSignup.classList.toggle('is-open', open);
+      reserveSignup.setAttribute('aria-hidden', String(!open));
+      reserveTrigger.setAttribute('aria-expanded', String(open));
+
+      if (open) {
+        setTimeout(() => {
+          try {
+            reserveEmail.focus({ preventScroll: true });
+          } catch (_) {
+            reserveEmail.focus();
+          }
+        }, 220);
+      }
+    });
+
+    reserveForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const email = reserveEmail.value.trim();
+      reserveStatus.textContent = '';
+
+      if (!reserveEmail.checkValidity()) {
+        reserveStatus.textContent = 'Please enter a valid email address.';
+        reserveEmail.focus({ preventScroll: true });
+        return;
+      }
+
+      // Preserve the original signup behavior:
+      // hide the expanded form immediately and continue the API request.
+      reserveSignup.classList.remove('is-open');
+      reserveSignup.setAttribute('aria-hidden', 'true');
+      reserveTrigger.setAttribute('aria-expanded', 'false');
+
+      reserveFinalStatus.textContent =
+        'Thank you. You are on the Reserve list.';
+      reserveFinalStatus.classList.add('is-visible');
+
+      reserveSubmit.disabled = true;
+      reserveSubmit.textContent = 'Joining...';
+      reserveStatus.textContent = '';
+
+      try {
+        let browserCountryCode = '';
+
+        try {
+          browserCountryCode =
+            new Intl.Locale(navigator.language || '').region || '';
+        } catch (_) {
+          const match =
+            (navigator.language || '').match(/-([A-Z]{2})\b/i);
+
+          browserCountryCode = match ? match[1].toUpperCase() : '';
+        }
+
+        const response = await fetch('/api/join', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            email,
+            company: reserveCompany.value,
+            countryCode: browserCountryCode,
+            locale: navigator.language || '',
+            timezone:
+              Intl.DateTimeFormat().resolvedOptions().timeZone || ''
+          })
+        });
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Unable to join right now.');
+        }
+
+        reserveFinalStatus.textContent = data.alreadyJoined
+          ? 'You are already on the Reserve list.'
+          : 'Thank you. You are on the Reserve list.';
+
+        if (!data.alreadyJoined) {
+          reserveForm.reset();
+        }
+
+      } catch (error) {
+        reserveFinalStatus.textContent =
+          error.message || 'Unable to join right now. Please try again.';
+
+        reserveFinalStatus.classList.add('is-visible');
+
+      } finally {
+        reserveSubmit.disabled = false;
+        reserveSubmit.textContent = 'Join the Reserve';
+      }
+    });
+  </script>
+</body>
+</html>
