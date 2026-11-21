@@ -2,19 +2,21 @@
 "use strict";
 
 /*
- GLF RESERVE — TEST SIGNUP
- Only for the separate Vercel TEST project.
- Original GLF website is not affected.
+ GLF RESERVE — MANUAL EMAIL TEST SIGNUP
+
+ 1. User joins TEST website
+ 2. Signup saves to TEST Google Sheet
+ 3. A unique Welcome Kit link is saved
+ 4. No automatic welcome email is sent
 */
 
-const { createWelcomeToken } = require(
-  "./welcome-kit/_email"
-);
+const {
+  createWelcomeToken
+} = require("./welcome-kit/_email");
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Send data securely to Google Apps Script
-async function callAppsScript(url, payload) {
+async function saveToTestSheet(url, payload) {
   const controller = new AbortController();
 
   const timeout = setTimeout(() => {
@@ -40,15 +42,14 @@ async function callAppsScript(url, payload) {
       data = JSON.parse(raw);
     } catch (error) {
       throw new Error(
-        "Apps Script returned a non-JSON response"
+        "TEST Google Apps Script did not return JSON"
       );
     }
 
     if (!response.ok || !data.success) {
       throw new Error(
         String(
-          data.error ||
-          "Google Apps Script request failed"
+          data.error || "TEST signup was rejected"
         )
       );
     }
@@ -60,7 +61,6 @@ async function callAppsScript(url, payload) {
   }
 }
 
-// Main TEST signup API
 module.exports = async function handler(req, res) {
 
   res.setHeader("Cache-Control", "no-store");
@@ -71,19 +71,15 @@ module.exports = async function handler(req, res) {
     });
   }
 
-  // TEST mode must be enabled
   if (process.env.GLF_TEST_MODE !== "true") {
     return res.status(503).json({
-      error: "Test mode disabled"
+      error: "TEST mode disabled"
     });
   }
 
-  // Required Vercel environment variables
   const required = [
     "GLF_TEST_SIGNUP_SCRIPT_URL",
     "GLF_TEST_SIGNUP_SECRET",
-    "GLF_TEST_EMAIL_SCRIPT_URL",
-    "GLF_TEST_EMAIL_SECRET",
     "GLF_TEST_SITE_URL",
     "GLF_TEST_ALLOWED_EMAILS",
     "GLF_TOKEN_SECRET"
@@ -95,54 +91,58 @@ module.exports = async function handler(req, res) {
 
   if (missing.length > 0) {
     console.error(
-      "[GLF TEST] Missing variables:",
+      "[GLF TEST] Missing settings:",
       missing.join(", ")
     );
 
     return res.status(503).json({
-      error: "Test server settings are incomplete"
+      error: "TEST configuration incomplete"
     });
   }
 
   const site = process.env.GLF_TEST_SITE_URL
     .replace(/\/+$/, "");
 
-  if (!/^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(site)) {
+  if (
+    !/^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(site)
+  ) {
     return res.status(503).json({
-      error: "Invalid TEST website URL"
+      error: "Invalid TEST site URL"
     });
   }
 
-  if (!req.body || typeof req.body !== "object") {
-    return res.status(400).json({
-      error: "Invalid request"
-    });
-  }
+  const body =
+    req.body && typeof req.body === "object"
+      ? req.body
+      : {};
 
-  // Honeypot spam protection
-  if (req.body.company) {
+  // Spam protection
+  if (body.company) {
     return res.status(200).json({
       ok: true
     });
   }
 
-  const email = String(req.body.email || "")
+  const email = String(body.email || "")
     .trim()
     .toLowerCase();
 
-  if (email.length > 254 || !EMAIL_RE.test(email)) {
+  if (
+    email.length > 254 ||
+    !EMAIL_RE.test(email)
+  ) {
     return res.status(400).json({
-      error: "Please enter a valid email address"
+      error: "Please enter a valid email"
     });
   }
 
-  // Allow approved TEST recipients only
-  const allowedEmails = process.env
+  // Approved TEST addresses only
+  const allowed = process.env
     .GLF_TEST_ALLOWED_EMAILS
     .split(",")
     .map(value => value.trim().toLowerCase());
 
-  if (!allowedEmails.includes(email)) {
+  if (!allowed.includes(email)) {
     return res.status(403).json({
       error: "TEST ONLY: Email not approved"
     });
@@ -153,7 +153,7 @@ module.exports = async function handler(req, res) {
 
   const countryCode = String(
     req.headers["x-vercel-ip-country"] ||
-    req.body.countryCode ||
+    body.countryCode ||
     ""
   ).toUpperCase();
 
@@ -170,24 +170,7 @@ module.exports = async function handler(req, res) {
 
   try {
 
-    // STEP 1: Save email in Signup TEST Sheet
-    const saved = await callAppsScript(
-      process.env.GLF_TEST_SIGNUP_SCRIPT_URL,
-      {
-        secret: process.env.GLF_TEST_SIGNUP_SECRET,
-        email: email,
-        country: country
-      }
-    );
-
-    if (saved.alreadyJoined) {
-      return res.status(200).json({
-        ok: true,
-        alreadyJoined: true
-      });
-    }
-
-    // STEP 2: Generate secure welcome link
+    // Generate personal Welcome Kit link
     const token = createWelcomeToken(email);
 
     const welcomeLink =
@@ -195,32 +178,38 @@ module.exports = async function handler(req, res) {
       "/welcome-kit/?token=" +
       encodeURIComponent(token);
 
-    // STEP 3: Send Welcome Email from Chandan Gmail
-    await callAppsScript(
-      process.env.GLF_TEST_EMAIL_SCRIPT_URL,
+    // Save signup and personal link
+    // in TEST Google Sheet
+    const result = await saveToTestSheet(
+      process.env.GLF_TEST_SIGNUP_SCRIPT_URL,
       {
-        secret: process.env.GLF_TEST_EMAIL_SECRET,
-        to: email,
-        link: welcomeLink
+        secret:
+          process.env.GLF_TEST_SIGNUP_SECRET,
+        email: email,
+        country: country,
+        welcomeLink: welcomeLink
       }
     );
 
+    // NO automatic email sending
+
     return res.status(200).json({
       ok: true,
-      alreadyJoined: false,
-      message: "Welcome email sent"
+      alreadyJoined: !!result.alreadyJoined,
+      message:
+        "Signup saved. Welcome email will be sent manually."
     });
 
   } catch (error) {
 
     console.error(
-      "[GLF TEST JOIN ERROR]",
+      "[GLF MANUAL TEST JOIN]",
       error.message
     );
 
     return res.status(502).json({
       error:
-        "TEST signup could not finish. Check Vercel Function Logs."
+        "TEST signup could not be saved. Check Vercel logs."
     });
   }
 };
